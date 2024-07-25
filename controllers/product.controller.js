@@ -103,7 +103,7 @@ const findProduct = async (req, res) => {
   const { _id } = req.params;
   try {
     if (_id) {
-      products = await ProductModel.find({ _id });
+      products = await ProductModel.findOne({ _id });
     }
 
     res.status(200).send(products);
