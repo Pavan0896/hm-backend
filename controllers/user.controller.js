@@ -4,21 +4,27 @@ require("dotenv").config();
 const UserModel = require("../models/user.model");
 const blacklist = require("../blacklistToken");
 
-const registerUser = (req, res) => {
+const registerUser = async(req, res) => {
   const { userName, email, password, role } = req.body;
-  try {
-    bcrypt.hash(password, 3, async (err, hash) => {
-      if (err) {
-        res.status(500).send({ message: "Error while hasing password." });
-      } else {
-        const user = new UserModel({ userName, email, password: hash, role });
-        await user.save();
-        res.status(200).send({ message: "New user registered successfully" });
-      }
-    });
-  } catch (error) {
-    res.status(500).send({ message: "Something went wrong" });
+try {
+  const existingUser = await UserModel.findOne({ email });
+  if (existingUser) {
+    return res.status(400).send({ message: "Email already exists." });
   }
+
+  bcrypt.hash(password, 3, async (err, hash) => {
+    if (err) {
+      res.status(500).send({ message: "Error while hashing password." });
+    } else {
+      const user = new UserModel({ userName, email, password: hash, role });
+      await user.save();
+      res.status(200).send({ message: "New user registered successfully" });
+    }
+  });
+} catch (error) {
+  res.status(500).send({ message: "Something went wrong" });
+}
+
 };
 
 const loginUser = async (req, res) => {
