@@ -29,25 +29,34 @@ const getProduct = async (req, res) => {
   let sortOption = {};
   let pageSkip = (page - 1) * limit;
 
-  if (related_to == "women") {
-    filter.related_to = "women";
-  } else if (related_to == "men") {
-    filter.related_to = "men";
-  } else {
-    filter.related_to = { $regex: related_to, $options: "i" };
+  if (related_to) {
+    if (related_to === "women" || related_to === "men") {
+      filter.related_to = related_to;
+    } else {
+      filter.related_to = { $regex: related_to, $options: "i" };
+    }
   }
   if (category) {
     filter.category = { $regex: category, $options: "i" };
   }
   if (q) {
-    filter.$or = [
-      { title: { $regex: q, $options: "i" } },
-      { category: { $regex: q, $options: "i" } },
-      { related_to: { $regex: q, $options: "i" } },
-    ];
+    if (q == "men") {
+      filter.related_to = "men";
+    } else if (q == "women") {
+      filter.related_to = "women";
+    } else {
+      filter.$or = [
+        { title: { $regex: q, $options: "i" } },
+        { category: { $regex: q, $options: "i" } },
+        { related_to: { $regex: q, $options: "i" } },
+      ];
+    }
   }
   if (product) {
     filter.title = { $regex: product, $options: "i" };
+  }
+  if (gender) {
+    filter.gender = { $regex: gender, $options: "i" };
   }
 
   if (sort === "price") {
@@ -55,19 +64,17 @@ const getProduct = async (req, res) => {
   } else if (sort === "rating") {
     sortOption.rating = order === "asc" ? 1 : -1;
   }
-  if (gender) {
-    filter.gender = { $regex: gender, $options: "i" };
-  }
 
   try {
     let products = await ProductModel.find(filter)
       .sort(sortOption)
       .skip(pageSkip)
-      .limit(limit);
+      .limit(parseInt(limit, 10));
 
     res.status(200).send(products);
   } catch (error) {
-    res.status(500).send({ message: "Internal Error" });
+    console.error("Error fetching products:", error);
+    res.status(500).send({ message: "Internal Error", error });
   }
 };
 
