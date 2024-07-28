@@ -40,18 +40,51 @@ const getProduct = async (req, res) => {
     filter.category = { $regex: category, $options: "i" };
   }
   if (q) {
-    if (q == "men") {
-      filter.related_to = "men";
-    } else if (q == "women") {
-      filter.related_to = "women";
+    const words = q.split(" ");
+    if (words.length === 1) {
+      if (q === "men") {
+        filter.related_to = "men";
+      } else if (q === "women") {
+        filter.related_to = "women";
+      } else {
+        filter.$or = [
+          { title: { $regex: q, $options: "i" } },
+          { category: { $regex: q, $options: "i" } },
+          { related_to: { $regex: q, $options: "i" } },
+          { gender: { $regex: q, $options: "i" } },
+        ];
+      }
     } else {
-      filter.$or = [
-        { title: { $regex: q, $options: "i" } },
-        { category: { $regex: q, $options: "i" } },
-        { related_to: { $regex: q, $options: "i" } },
-      ];
+      const relatedToFilter = words.includes("men")
+        ? "men"
+        : words.includes("women")
+        ? "women"
+        : null;
+
+      if (relatedToFilter) {
+        filter.related_to = relatedToFilter;
+        const remainingWords = words.filter((word) => word !== relatedToFilter);
+        if (remainingWords.length > 0) {
+          filter.$and = remainingWords.map((word) => ({
+            $or: [
+              { title: { $regex: word, $options: "i" } },
+              { category: { $regex: word, $options: "i" } },
+              { related_to: { $regex: word, $options: "i" } },
+            ],
+          }));
+        }
+      } else {
+        filter.$and = words.map((word) => ({
+          $or: [
+            { title: { $regex: word, $options: "i" } },
+            { category: { $regex: word, $options: "i" } },
+            { related_to: { $regex: word, $options: "i" } },
+          ],
+        }));
+      }
     }
   }
+
   if (product) {
     filter.title = { $regex: product, $options: "i" };
   }
