@@ -1,5 +1,6 @@
-const ProductModel = require("../models/products.model");
 const { ObjectId } = require("mongodb");
+const { ProductModel, CarouselModel } = require("../models/products.model");
+const PurchaseModel = require("../models/purchased.model");
 
 const postProduct = async (req, res) => {
   const { title, price, image1, image2, category, related_to, rating } =
@@ -41,7 +42,7 @@ const getProduct = async (req, res) => {
   }
   if (q) {
     const words = q.split(" ");
-    if (words.length === 1) {
+    if (words.length == 1) {
       if (q === "men") {
         filter.related_to = "men";
       } else if (q === "women") {
@@ -151,7 +152,7 @@ const updateProduct = async (req, res) => {
 
 const getMany = async (req, res) => {
   try {
-    const { ids } = req.body;
+    const { ids, _id } = req.body;
 
     if (!Array.isArray(ids)) {
       return res.status(400).send({ error: "IDs should be an array" });
@@ -191,6 +192,77 @@ const deleteProduct = async (req, res) => {
   }
 };
 
+const getCarousel = async (req, res) => {
+  try {
+    const products = await CarouselModel.find();
+    res.status(200).send({ data: products });
+  } catch (error) {
+    res.status(500).send({ message: "Internal error" });
+  }
+};
+
+const postCarousel = async (req, res) => {
+  const { title, price, image1, image2, category, related_to, rating } =
+    req.body;
+  try {
+    const product = new CarouselModel({
+      title,
+      price,
+      image1,
+      image2,
+      category,
+      related_to,
+      rating,
+    });
+    await product.save();
+    res
+      .status(200)
+      .send({ message: "Product for carousel added successfully" });
+  } catch (error) {
+    res.status(500).send({ message: "Internal error" });
+  }
+};
+
+const postPurchase = async (req, res) => {
+  const { ids, user_id } = req.body;
+
+  try {
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).send({ message: "No valid ids provided" });
+    }
+
+    const purchased = await PurchaseModel.findOneAndUpdate(
+      { user_id },
+      {
+        $addToSet: { ids: { $each: ids } },
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+
+    if (!purchased) {
+      return res
+        .status(404)
+        .send({ message: "Purchase record not found or created" });
+    }
+
+    const purchasedProducts = await ProductModel.find({
+      _id: { $in: purchased.ids },
+    });
+
+    if (purchasedProducts.length === 0) {
+      return res
+        .status(404)
+        .send({ message: "No products found for the provided IDs" });
+    }
+
+    res.status(200).send({
+      purchasedProducts,
+    });
+  } catch (error) {
+    res.status(500).send({ message: "Internal error" });
+  }
+};
+
 module.exports = {
   postProduct,
   getProduct,
@@ -198,4 +270,7 @@ module.exports = {
   updateProduct,
   deleteProduct,
   getMany,
+  getCarousel,
+  postCarousel,
+  postPurchase,
 };

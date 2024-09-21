@@ -6,6 +6,8 @@ const {
   deleteProduct,
   findProduct,
   getMany,
+  getCarousel,
+  postCarousel,
 } = require("../controllers/product.controller");
 const auth = require("../middlewares/auth.middleware");
 
@@ -22,5 +24,9 @@ prodRouter.post("/productsMany", getMany);
 prodRouter.patch("/updateProducts/:_id", auth, updateProduct);
 
 prodRouter.delete("/deleteProducts/:_id", auth, deleteProduct);
+
+prodRouter.get("/carousel", getCarousel);
+
+prodRouter.post("/carousel", postCarousel);
 
 module.exports = prodRouter;
