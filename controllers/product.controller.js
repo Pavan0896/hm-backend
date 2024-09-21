@@ -245,8 +245,37 @@ const postPurchase = async (req, res) => {
         .send({ message: "Purchase record not found or created" });
     }
 
+    res.status(200).send({ message: "Product added successfully" });
+  } catch (error) {
+    res.status(500).send({ message: "Internal error" });
+  }
+};
+
+const getPurchasedProducts = async (req, res) => {
+  const { user_id } = req.body;
+
+  if (!user_id) {
+    return res.status(400).send({ message: "User ID is required" });
+  }
+
+  try {
+    const purchasedIds = await PurchaseModel.aggregate([
+      {
+        $match: { user_id },
+      },
+      {
+        $project: { _id: 0, ids: 1 },
+      },
+    ]);
+
+    if (!purchasedIds.length || !purchasedIds[0].ids.length) {
+      return res
+        .status(404)
+        .send({ message: "No products found for the provided user ID" });
+    }
+
     const purchasedProducts = await ProductModel.find({
-      _id: { $in: purchased.ids },
+      _id: { $in: purchasedIds[0].ids },
     });
 
     if (purchasedProducts.length === 0) {
@@ -259,6 +288,7 @@ const postPurchase = async (req, res) => {
       purchasedProducts,
     });
   } catch (error) {
+    console.error(error);
     res.status(500).send({ message: "Internal error" });
   }
 };
@@ -273,4 +303,5 @@ module.exports = {
   getCarousel,
   postCarousel,
   postPurchase,
+  getPurchasedProducts,
 };
