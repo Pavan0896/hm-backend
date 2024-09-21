@@ -195,7 +195,7 @@ const deleteProduct = async (req, res) => {
 const getCarousel = async (req, res) => {
   try {
     const products = await CarouselModel.find();
-    res.status(200).send({ data: products });
+    res.status(200).send(products);
   } catch (error) {
     res.status(500).send({ message: "Internal error" });
   }
@@ -274,19 +274,18 @@ const getPurchasedProducts = async (req, res) => {
         .send({ message: "No products found for the provided user ID" });
     }
 
-    const purchasedProducts = await ProductModel.find({
+    const products = await ProductModel.find({
       _id: { $in: purchasedIds[0].ids },
     });
 
-    if (purchasedProducts.length === 0) {
+    console.log(products);
+
+    if (products.length === 0) {
       return res
         .status(404)
         .send({ message: "No products found for the provided IDs" });
     }
-
-    res.status(200).send({
-      purchasedProducts,
-    });
+    res.status(200).send(products);
   } catch (error) {
     console.error(error);
     res.status(500).send({ message: "Internal error" });
