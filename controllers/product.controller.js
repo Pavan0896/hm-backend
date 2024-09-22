@@ -292,6 +292,40 @@ const getPurchasedProducts = async (req, res) => {
   }
 };
 
+const getSuggestions = async (req, res) => {
+  const { q } = req.query;
+
+  if (!q) {
+    return res.status(400).send({ message: "Query parameter is required" });
+  }
+
+  try {
+    const regex = new RegExp(q, "i");
+
+    const suggestions = await ProductModel.find(
+      {
+        $or: [{ title: { $regex: regex } }, { category: { $regex: regex } }],
+      },
+      {
+        title: 1,
+        category: 1,
+        _id: 1,
+      }
+    )
+      .limit(10)
+      .exec();
+
+    if (suggestions.length === 0) {
+      return res.status(404).send({ message: "No suggestions found" });
+    }
+
+    res.status(200).send(suggestions);
+  } catch (error) {
+    console.error("Error fetching suggestions:", error);
+    res.status(500).send({ message: "Internal error", error });
+  }
+};
+
 module.exports = {
   postProduct,
   getProduct,
@@ -303,4 +337,5 @@ module.exports = {
   postCarousel,
   postPurchase,
   getPurchasedProducts,
+  getSuggestions,
 };
